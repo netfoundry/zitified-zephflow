@@ -17,6 +17,9 @@ import org.json.JSONArray;
 import java.io.*;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.Channels;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.util.Objects;
 import java.util.Properties;
@@ -53,31 +56,26 @@ public class FleakFlowRunner {
                 Future<AsynchronousSocketChannel> futureClient = server.accept();
                 AsynchronousSocketChannel client = futureClient.get();
                 System.out.println("Connection accepted");
-
-                // Read input from client
-                InputStream input = Channels.newInputStream(client);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-                String rawInput = reader.readLine();
-
-                // Skip if input is empty
-                if (rawInput == null || rawInput.trim().isEmpty()) {
-                    System.out.println("No input received — skipping flow execution.");
-                    client.close();
-                    continue;
+                String jobId = "job-" + client.hashCode();
+                Path inputFile = Paths.get(jobId + "-input.json");
+                // Read input from client to temp file
+                try(InputStream input = Channels.newInputStream(client);
+                    OutputStream output = Files.newOutputStream(inputFile)){
+                    System.out.println("Writing input stream to file: " + inputFile.getFileName());
+                    input.transferTo(output);
                 }
-
-                System.out.println("Received raw input: " + rawInput);
 
                 // Capture stdout and redirect stdin for ZephFlow
                 ByteArrayOutputStream outputCapture = new ByteArrayOutputStream();
                 PrintStream originalOut = System.out;
                 System.setOut(new PrintStream(outputCapture));
-                System.setIn(new ByteArrayInputStream(rawInput.getBytes()));
+                //close client
+                client.close();
 
                 // Start ZephFlow pipeline
                 ZephFlow flow = ZephFlow.startFlow();
-                ZephFlow inputFlow = flow.stdinSource(EncodingType.JSON_ARRAY);
-
+                //Read input from file
+                ZephFlow inputFlow = flow.fileSource(inputFile.toString(),EncodingType.JSON_ARRAY);
                 // 🔧 Transform input JSON
                 ZephFlow transformedFlow = inputFlow.eval(
                     "dict(" +
@@ -87,7 +85,6 @@ public class FleakFlowRunner {
                     "  timestamp = epoch_to_ts_str($.timestamp, \"yyyy-MM-dd HH:mm:ss\")" +
                     ")"
                 );
-
                 // Prepare the flow to emit the transformed JSON to stdout upon execution
                 ZephFlow outputFlow = transformedFlow.stdoutSink(EncodingType.JSON_OBJECT);
 
@@ -96,7 +93,8 @@ public class FleakFlowRunner {
                 System.out.println("Executing flow...");
                 outputFlow.execute(Objects.requireNonNull(ziti.getId()).getId(), args[2], args[1]);
                 long end = System.currentTimeMillis();
-
+                System.out.println("Discarding temp file: " + inputFile.getFileName());
+                Files.deleteIfExists(inputFile);
                 // Restore original stdout
                 System.setOut(originalOut);
                 System.out.println("Flow executed in " + (end - start) + "ms");
