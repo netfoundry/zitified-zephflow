@@ -47,7 +47,7 @@ public class FleakFlowRunner {
 
         // Allow time for terminator registration and edge-router propagation
         Thread.sleep(20000);
-        System.out.println(" FleakFlowRunner is actively listening on Ziti service 'FLEAK_TEST'...");
+        System.out.println(" FleakFlowRunner is actively listening on Ziti service '" + args[1] + "'...");
 
         // Accept incoming connections indefinitely
         while (true) {
