@@ -8,7 +8,7 @@ On the linux system that will run the Zephlow sdk
 clone the repo
 mkdir repos
 cd repos
-```git clone https://github.com/r-caamano/zitified-zephflow.git```
+```git clone https://github.com/netfoundry/zitified-zephflow.git```
 cd zitified-zephflow
 ```./gradlew --refresh-dependencies clean build ```
 
