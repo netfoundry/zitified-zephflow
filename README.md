@@ -44,7 +44,8 @@ The following assumes naming in the network diagram but can be substituted per p
 7. Install ziti-edge-tunnel on PostgreSQL server Install OpenZiti tunneller on client device and add identity FLEAK_CUST01 via jwt [Linux](https://netfoundry.io/docs/openziti/reference/tunnelers/linux/)
 8. Create db: mydb, user: myuser, password: mypassword
 9. create table transform e.g. 
-   ```CREATE TABLE transform (
+   ```
+      CREATE TABLE transform (
        id SERIAL PRIMARY KEY,          -- auto‑incrementing unique identifier
        doubled_value   INTEGER NOT NULL,
        original_value  INTEGER NOT NULL,
